@@ -1,0 +1,21 @@
+1. 証拠の有無と正確さ（全試行）
+                n  abs_dev   dev  exact
+any_evidence                           
+False          35    13.71 -7.14   0.17
+True          208     0.74  0.48   0.90 
+
+2. ②③ 試行：嘘 × 本人のドラレコ提出
+                    n  abs_dev   dev  ...  third_party  opp_dashcam  any_evidence
+deceive disclosed                     ...                                        
+0       0          55     6.49 -1.69  ...         0.47         0.36          0.69
+        1          36     0.28  0.28  ...         0.53         0.19          1.00
+1       0          39     4.03 -4.03  ...         0.54         0.51          0.69
+        1          29     0.00  0.00  ...         0.41         0.45          1.00
+
+[4 rows x 7 columns] 
+
+3. ②③ 試行：検出リスク条件ごとの証拠の出方（行動は同じでも証拠の量が違う）
+       n  deceive  disclosed  third_party  opp_dashcam  any_evidence  abs_dev
+high                                                                         
+0     71     0.44       0.41         0.14         0.34          0.70     4.04
+1     88     0.42       0.41         0.77         0.41          0.91     2.69

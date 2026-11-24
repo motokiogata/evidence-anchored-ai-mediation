@@ -1,0 +1,65 @@
+{
+ "A_mixed": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_stop_violation : 相手方Bの一時停止規制違反（不停止進入）（Bの進行路（非優先の側道）に一時停止標識。Bは停止も徐行もせず交差点へ進入した。）\n2. key=victim_speeding : 被害者Aの著しい速度超過（A車は制限速度40km/hの優先道路を67km/hで走行し交差点へ進入した（27km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_stop_violation",
+   "victim_speeding"
+  ]
+ },
+ "A_main_fault": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_stop_violation : 相手方Bの一時停止規制違反（不停止進入）（Bの進行路（非優先の側道）に一時停止標識。Bは停止も徐行もせず交差点へ進入した。）\n2. key=victim_speeding : 被害者Aの著しい速度超過（A車は制限速度40km/hの優先道路を67km/hで走行し交差点へ進入した（27km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_stop_violation",
+   "victim_speeding"
+  ]
+ },
+ "C_innocent": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_run_red : 相手方Bの信号無視（赤信号進入）（B車は交差方向から、自車前方の信号が赤のまま交差点に進入した。）\n2. key=victim_yellow_entry : 被害者Aの黄信号見切り進入（A車は前方信号が黄に変わった後、停止せず見切りで交差点に進入した。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_run_red",
+   "victim_yellow_entry"
+  ]
+ },
+ "B_innocent": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_early_turn : 相手方Bの早回り右折（Bは交差点の中心の手前をショートカットするように早回りで右折した。）\n2. key=victim_speeding : 直進車Aの速度超過（A車は制限速度50km/hの道路を73km/hで走行し交差点へ進入した（23km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_early_turn",
+   "victim_speeding"
+  ]
+ },
+ "B_main_fault": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_early_turn : 相手方Bの早回り右折（Bは交差点の中心の手前をショートカットするように早回りで右折した。）\n2. key=victim_speeding : 直進車Aの速度超過（A車は制限速度50km/hの道路を73km/hで走行し交差点へ進入した（23km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_early_turn",
+   "victim_speeding"
+  ]
+ },
+ "C_mixed": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_run_red : 相手方Bの信号無視（赤信号進入）（B車は交差方向から、自車前方の信号が赤のまま交差点に進入した。）\n2. key=victim_yellow_entry : 被害者Aの黄信号見切り進入（A車は前方信号が黄に変わった後、停止せず見切りで交差点に進入した。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_run_red",
+   "victim_yellow_entry"
+  ]
+ },
+ "C_main_fault": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_run_red : 相手方Bの信号無視（赤信号進入）（B車は交差方向から、自車前方の信号が赤のまま交差点に進入した。）\n2. key=victim_yellow_entry : 被害者Aの赤信号進入（信号残り）（A車は前方信号が赤に変わった後、停止せず交差点に進入した（相手Bの前方信号は青）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_run_red",
+   "victim_yellow_entry"
+  ]
+ },
+ "A_innocent": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_stop_violation : 相手方Bの一時停止規制違反（不停止進入）（Bの進行路（非優先の側道）に一時停止標識。Bは停止も徐行もせず交差点へ進入した。）\n2. key=victim_speeding : 被害者Aの著しい速度超過（A車は制限速度40km/hの優先道路を67km/hで走行し交差点へ進入した（27km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_stop_violation",
+   "victim_speeding"
+  ]
+ },
+ "B_mixed": {
+  "system_prompt": "あなたは交渉発言の分析器です。以下の争点リストについて、発言者がその争点を『主張(assert=その事実があった/自分に有利に述べる)』『否認(deny=無かった/相手の主張を否定)』『自認(concede=自分に不利な事実を認める)』『言及なし(none)』のどれで扱ったか判定してください。\n発言者: 被害者A\n争点リスト:\n1. key=opp_early_turn : 相手方Bの早回り右折（Bは交差点の中心の手前をショートカットするように早回りで右折した。）\n2. key=victim_speeding : 直進車Aの速度超過（A車は制限速度50km/hの道路を73km/hで走行し交差点へ進入した（23km/h超過）。）\n\n必ず次のJSON配列のみ出力: [{\"key\":\"<争点key>\",\"stance\":\"assert|deny|concede|none\"}, ...] 全争点を1つずつ含めること。",
+  "keys": [
+   "opp_early_turn",
+   "victim_speeding"
+  ]
+ }
+}

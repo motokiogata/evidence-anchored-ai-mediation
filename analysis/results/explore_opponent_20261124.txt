@@ -1,0 +1,17 @@
+相手方の発言 993 件（主分析の 243 試行）／コーディング済み 982
+発言単位（1発言が複数に該当しうる）: {'none': '827（83.3%）', 'truthful_assertion': '537（54.1%）', 'concession': '144（14.5%）', 'false_claim': '80（8.1%）', 'truthful_denial': '73（7.4%）', 'denial_of_true': '36（3.6%）'}
+
+試行単位：相手方AIが1回以上（割合）
+            lied  false_claim  denial_of_true  concession   n
+cell                                                         
+innocent    0.65         0.64            0.13        0.87  84
+main_fault  0.00         0.00            0.00        0.00  79
+mixed       0.21         0.00            0.21        0.61  80
+全体: {'lied': 0.296, 'false_claim': 0.222, 'denial_of_true': 0.115, 'concession': 0.502}
+条件別（Low=0/High=1）: {0: 0.275, 1: 0.313}
+
+相手方AIの嘘の有無と結果（|乖離| の平均, n）
+      mean  size
+lied            
+0     2.86   171
+1     2.01    72

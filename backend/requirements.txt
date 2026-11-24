@@ -1,0 +1,2 @@
+# Bedrock Converse API を確実に利用するため boto3 を明示的に同梱
+boto3>=1.34.100

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>示談交渉支援AI 実証実験</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="./config.js"></script>
+<style>
+  :root { --bg:#f4f6f9; --card:#fff; --pri:#2563eb; --pri2:#1d4ed8; --ink:#1f2937; --mut:#6b7280; --line:#e5e7eb; --ok:#059669; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+         background: var(--bg); color: var(--ink); line-height:1.7; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+  .card { background: var(--card); border:1px solid var(--line); border-radius:14px; padding:24px; margin-bottom:18px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  h2 { font-size: 18px; margin: 0 0 14px; }
+  h3 { font-size: 15px; margin: 18px 0 8px; color: var(--pri2); }
+  p, li { font-size: 15px; }
+  .mut { color: var(--mut); font-size: 13px; }
+  ol.manual { padding-left: 22px; }
+  ol.manual li { margin: 6px 0; line-height: 1.5; }
+  .devpanel { margin-top: 14px; padding: 12px 14px; border: 2px dashed #b45309;
+              border-radius: 8px; background: #fffbeb; }
+  .devpanel-hd { font-weight: 700; color:#b45309; font-size: 13px; margin-bottom: 8px; }
+  .devpanel-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+  .devpanel label { display:flex; flex-direction:column; font-size:12px; color:#78716c; gap:3px; }
+  .devpanel select { font-size:14px; padding:6px 8px; border:1px solid #d6d3d1; border-radius:6px; }
+  .btn { background: var(--pri); color:#fff; border:none; border-radius:10px; padding:12px 22px; font-size:15px;
+         cursor:pointer; font-weight:600; }
+  .btn:hover { background: var(--pri2); }
+  .btn:disabled { background:#9ca3af; cursor:not-allowed; }
+  .btn.ghost { background:#fff; color:var(--pri); border:1px solid var(--pri); }
+  .progress { height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-bottom:20px; }
+  .progress > i { display:block; height:100%; background:var(--pri); transition:width .3s; }
+  .scenario { background:#eff6ff; border-left:4px solid var(--pri); padding:14px 16px; border-radius:8px; white-space:pre-wrap; }
+  .private { background:#fef9c3; border-left:4px solid #ca8a04; padding:14px 16px; border-radius:8px; white-space:pre-wrap; margin-top:12px; }
+  .proposal { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:16px; margin-top:12px; white-space:pre-wrap; }
+  .headline { font-weight:700; font-size:17px; color:var(--ok); margin-bottom:10px; }
+  .likert { display:flex; gap:6px; align-items:center; margin:6px 0 2px; flex-wrap:wrap; }
+  .likert label { display:flex; flex-direction:column; align-items:center; font-size:12px; cursor:pointer; width:40px; }
+  .likert input { margin-bottom:3px; }
+  .qitem { padding:12px 0; border-bottom:1px dashed var(--line); }
+  .qtext { font-size:14px; margin-bottom:4px; }
+  .endlabels { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); max-width:340px; }
+  select, input[type=number], input[type=text], textarea { font-size:15px; padding:8px 10px; border:1px solid var(--line);
+         border-radius:8px; width:100%; font-family:inherit; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; }
+  .grid2 label { font-size:13px; }
+  .brief { margin:8px 0 0; padding-left:0; list-style:none; }
+  .brief li { margin:0 0 8px; line-height:1.6; font-size:14px; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } }
+  .chat { border:1px solid var(--line); border-top-left-radius:0; border-radius:12px; height:380px; overflow-y:auto; padding:14px; background:#fafbfc; }
+  .rtabs { display:flex; flex-wrap:wrap; gap:4px; margin-top:14px; }
+  .rtab { border:1px solid var(--line); border-bottom:none; background:#eef2f7; color:#475569; font-size:13px;
+          padding:7px 14px; border-radius:8px 8px 0 0; cursor:pointer; line-height:1; }
+  .rtab:hover { background:#e2e8f0; }
+  .rtab.active { background:#fafbfc; color:var(--pri); font-weight:700; border-color:var(--line);
+                 box-shadow:0 -2px 0 var(--pri) inset; }
+  .rtabs + .chat { margin-top:-1px; }
+  .msg { max-width:78%; padding:10px 14px; border-radius:14px; margin:8px 0; white-space:pre-wrap; font-size:14px; }
+  .msg.user { background:var(--pri); color:#fff; margin-left:auto; border-bottom-right-radius:4px; }
+  .msg.opp { background:#fff; border:1px solid var(--line); margin-right:auto; border-bottom-left-radius:4px; }
+  .msg.sup { background:#f5f3ff; border:1px solid #ddd6fe; margin-right:auto; }
+  .msg.advice { background:#ecfdf5; border:1px solid #a7f3d0; margin-left:auto; }
+  .row { display:flex; gap:8px; margin-top:10px; }
+  .support-panel { background:#faf5ff; border:1px solid #e9d5ff; border-radius:12px; padding:14px; margin-top:14px; }
+  .instr { background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:14px; margin-top:14px; }
+  .instr select { font-size:14px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; min-width:220px; }
+  .instr textarea { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:8px; font-size:14px; }
+  .toggle { display:flex; align-items:flex-start; gap:8px; padding:12px 0; font-size:14px; cursor:pointer; }
+  .toggle input { margin-top:3px; }
+  .badge { display:inline-block; background:#ede9fe; color:#6d28d9; font-size:11px; padding:3px 9px; border-radius:20px; margin-left:6px; }
+  .err { color:#b91c1c; font-size:13px; margin-top:8px; }
+  .center { text-align:center; }
+  .code { font-family: monospace; font-size:20px; background:#f3f4f6; padding:8px 16px; border-radius:8px; display:inline-block; letter-spacing:2px; }
+
+  /* ---- ゲーム風の見た目（2026-11 募集開始前）----
+     文言は倫理審査で承認済みのものを変えない。足すのは進行の可視化（ステージ・ラウンド・回答数）と演出だけ。
+     どの条件にも同じ見た目を出し、成績・報酬の途中経過は出さない（試行間で行動を変えないため）。 */
+  :root { --acc:#f59e0b; --pri-grad:linear-gradient(135deg,#2563eb,#7c3aed); }
+  body { background: radial-gradient(1200px 400px at 50% -120px, #dbeafe, transparent), var(--bg); }
+  .card { animation: cardIn .35s ease-out both; }
+  @keyframes cardIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+  .btn { background: var(--pri-grad); box-shadow: 0 3px 0 #1e3a8a; transition: transform .08s, box-shadow .08s;
+         min-height:48px; touch-action: manipulation; }
+  .btn:hover { background: var(--pri-grad); filter: brightness(1.06); }
+  .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #1e3a8a; }
+  .btn:disabled { background:#9ca3af; box-shadow:none; filter:none; }
+  .btn.ghost { background:#fff; box-shadow: 0 2px 0 #c7d2fe; }
+  .progress { height:8px; }
+  .progress > i { background: linear-gradient(90deg,#2563eb,#7c3aed,#f59e0b); }
+
+  /* 上部の進行HUD：今どのステージ（シナリオ）の、どの段階か */
+  .hud { position:sticky; top:0; z-index:40; margin:-24px -16px 14px; padding:10px 16px 8px;
+         background: rgba(244,246,249,.92); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+         border-bottom:1px solid var(--line); }
+  .hud-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .hud-stage { font-weight:800; letter-spacing:.06em; font-size:13px; color:#4338ca; }
+  .hud-rule { margin-top:6px; padding:5px 8px; border-radius:8px; background:#fef3c7; color:#78350f;
+    font-size:12px; line-height:1.5; }
+  .hud-rule-minus { white-space:nowrap; }
+  .pips { display:flex; gap:6px; }
+  .pip { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800;
+         background:#e5e7eb; color:#6b7280; }
+  .pip.done { background:#10b981; color:#fff; }
+  .pip.now { background: var(--pri-grad); color:#fff; box-shadow:0 0 0 3px #c7d2fe; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 0 6px rgba(199,210,254,.4); } }
+  .phases { display:flex; gap:4px; margin-top:8px; }
+  .phase { flex:1; text-align:center; font-size:11px; padding:4px 2px; border-radius:6px; background:#eef2f7; color:#94a3b8; }
+  .phase.done { background:#d1fae5; color:#047857; }
+  .phase.now { background:#e0e7ff; color:#3730a3; font-weight:700; }
+  .hud + .progress { margin-bottom:14px; }
+
+  /* 開始画面の「3ステージ」バナー */
+  .hero { background: var(--pri-grad); color:#fff; border-radius:14px; padding:16px; margin-bottom:16px; }
+  .hero-k { font-size:12px; letter-spacing:.12em; opacity:.85; font-weight:700; }
+  .hero-t { font-size:18px; font-weight:800; margin:2px 0 10px; }
+  .hero-tiles { display:flex; gap:8px; }
+  .hero-tile { flex:1; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); border-radius:10px;
+               padding:8px 4px; text-align:center; font-size:12px; }
+  .hero-tile b { display:block; font-size:20px; }
+
+  /* ステージクリア画面 */
+  .clear { padding-top:32px; padding-bottom:32px; }
+  .clear-burst { font-size:56px; line-height:1; animation: pop .6s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes pop { from { transform: scale(.2) rotate(-20deg); opacity:0; } to { transform:none; opacity:1; } }
+  .clear-k { margin-top:10px; font-weight:900; letter-spacing:.14em; font-size:14px;
+             background: var(--pri-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:60; }
+  .confetti i { position:absolute; top:-12px; width:8px; height:14px; border-radius:2px; animation: fall 1.8s ease-in forwards; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity:.2; } }
+
+  /* 小さなカウンタ（再生回数・回答数・ラウンド） */
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:4px 10px;
+          border-radius:999px; background:#eef2ff; color:#3730a3; }
+  .chip.ok { background:#d1fae5; color:#047857; }
+  .dots { display:inline-flex; gap:4px; vertical-align:middle; }
+  .dots i { width:10px; height:10px; border-radius:50%; background:#e5e7eb; display:inline-block; }
+  .dots i.on { background:#6366f1; }
+  .dots i.now { background:#f59e0b; }
+
+  /* リッカート：小さなラジオではなく、指で押しやすいボタンに */
+  .likert { flex-wrap:nowrap; gap:4px; }
+  .likert label { flex:1; width:auto; min-width:0; max-width:56px; height:42px; justify-content:center;
+                  border:1.5px solid #cbd5e1; border-radius:10px; background:#fff; font-size:15px; font-weight:700;
+                  color:#475569; transition: background .12s, transform .08s; }
+  .likert label.on { background: var(--pri-grad); border-color:transparent; color:#fff; transform: scale(1.06); }
+  .likert input { position:absolute; opacity:0; width:1px; height:1px; }
+  .endlabels { max-width:none; gap:8px; }
+  .qitem.answered .qtext::before { content:"✓ "; color:#10b981; font-weight:800; }
+
+  @media (max-width:560px) {
+    .wrap { padding: 24px 12px 64px; }
+    .hud { margin:-24px -12px 12px; padding:8px 12px 6px; }
+    .card { padding:16px 14px; border-radius:12px; }
+    h1 { font-size:19px; } h2 { font-size:17px; }
+    p, li { font-size:14.5px; }
+    /* iOSは16px未満の入力欄にフォーカスすると画面を拡大してしまう */
+    select, input[type=number], input[type=text], textarea, .instr select, .instr textarea { font-size:16px; }
+    .instr select { min-width:0; width:100%; }
+    .btn { width:100%; padding:14px 16px; font-size:16px; }
+    .chat { height: 58vh; padding:10px; }
+    .msg { max-width:92%; font-size:14px; }
+    .rtabs { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .rtab { flex:0 0 auto; padding:9px 12px; }
+    .scenario, .private, .proposal, .instr { padding:12px; }
+    .code { font-size:18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const API = window.API_BASE;
+
+async function api(path, method, body) {
+  const opt = { method, headers: {"Content-Type":"application/json"} };
+  if (body) opt.body = JSON.stringify(body);
+  const r = await fetch(API + path, opt);
+  let data = null;
+  try { data = await r.json(); } catch(e) {}
+  if (!r.ok) throw new Error((data && (data.error || data.message)) || ("エラー " + r.status));
+  return data;
+}
+
+// ------- 募集経路（?src=cw = クラウドワークス） -------
+// クラウドワークス経由は固定報酬（成果報酬・口座への直接振込は同サイトの規約で禁止）。
+// 交渉の成果は「ゲームのスコア」として見せるだけ（換金不可・報酬額に影響しない）。
+// 「ポイントが稼げる」と読める表現は同サイトの禁止事項に触れるので使わない。
+// 生成AIの利用とコピー＆ペーストは禁止し、入力欄への貼り付けは無効化する。
+const SOURCE = (new URLSearchParams(location.search).get("src") || "").toLowerCase() === "cw" ? "cw" : null;
+const IS_CW = SOURCE === "cw";
+const CW_REWARD_YEN = 330;   // クラウドワークスのタスク単価の税込表示額（税抜300円で入力）と一致させる
+// 回答の真正性の手がかり。参加全体の累計を最終アンケート(t2)と一緒に送る。
+const INTEGRITY = { paste_blocked: 0, hidden_count: 0, hidden_ms: 0 };
+if (IS_CW) {
+  let hiddenAt = null;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { hiddenAt = Date.now(); INTEGRITY.hidden_count++; }
+    else if (hiddenAt) { INTEGRITY.hidden_ms += Date.now() - hiddenAt; hiddenAt = null; }
+  });
+}
+function pasteToast() {
+  let el = document.getElementById("paste-toast");
+  if (!el) {
+    el = document.createElement("div"); el.id = "paste-toast";
+    el.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;" +
+      "background:#b91c1c;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:90vw;";
+    document.body.appendChild(el);
+  }
+  el.textContent = "この調査では貼り付けはできません。ご自身の言葉で入力してください。";
+  el.style.display = "block";
+  clearTimeout(el._t); el._t = setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+// 自由記述欄に展開する props。クラウドワークス経由のときだけ貼り付け・ドロップを止める。
+const NO_PASTE = IS_CW ? {
+  onPaste: e => { e.preventDefault(); INTEGRITY.paste_blocked++; pasteToast(); },
+  onDrop: e => { e.preventDefault(); INTEGRITY.paste_blocked++; pasteToast(); },
+} : {};
+
+// イベントログ（撃ちっぱなし。失敗しても実験を止めない）
+function logEvent(sessionId, event, data) {
+  try { api("/api/event", "POST", {sessionId, event, data}); } catch(e) {}
+}
+
+// ------- 事故動画の視聴ゲート -------
+// 被害者役には victim 視点のみを配信。所定の回数を視聴するまで次へ進めない。
+// 映像は6秒と短く、自車の不利事実（速度超過・信号）はHUDでしか伝わらない。1回の視聴では
+// 見落としが起こり、開示ゲームの前提（自分のタイプを知っている）が崩れるため、
+// 研究3では2回の視聴を必須とする（2026-09 専門家フィードバック対応）。
+const REQUIRED_VIEWS = 2;
+function VideoGate({ session, onDone }) {
+  const [views, setViews] = useState(0);
+  const [watched, setWatched] = useState(0);
+  const startedRef = useRef(false);
+  const src = session.video_url;  // 例: videos/A_intersection_victim.mp4（同一オリジン配信）
+  const need = session.study === "study3" ? REQUIRED_VIEWS : 1;
+  const ok = views >= need;
+  return (
+    <div className="card">
+      <h2>事故映像の確認</h2>
+      <p className="mut">あなたが運転していた車のドライブレコーダー映像です。
+        車内の表示（速度計・信号の表示）も含めて、事故の状況をよく確認してください。
+        {need > 1 && <>（<b>{need}回</b>再生すると次へ進めます）</>}</p>
+      {need > 1 && <div style={{margin:"4px 0 10px"}}>
+        <span className={"chip"+(ok?" ok":"")}>▶ 再生 {Math.min(views,need)} / {need}
+          <span className="dots">{Array.from({length:need},(_,i)=><i key={i} className={i<views?"on":""}/>)}</span></span></div>}
+      <video src={src} controls playsInline style={{width:"100%", borderRadius:12, background:"#000"}}
+        onPlay={()=>{ if(!startedRef.current){ startedRef.current=true; logEvent(session.sessionId,"video_start",{src}); } }}
+        onTimeUpdate={e=>setWatched(Math.max(watched, e.target.currentTime))}
+        onEnded={e=>{ const n = views + 1; setViews(n);
+          logEvent(session.sessionId,"video_ended",{watched:e.target.currentTime, view_no:n});
+          // 規定回数に満たなければ自動で頭出しして再生を促す（操作の手間で視聴が減るのを防ぐ）
+          if (n < need) { try { e.target.currentTime = 0; e.target.play(); } catch(err){} } }} />
+      <p className="mut" style={{marginTop:8}}>
+        ※ この映像は、あなたの車の視点です。相手方には相手の車の視点の映像が示されています
+        （実際の事故と同じく、立場によって見えるものが異なります）。</p>
+      <div style={{marginTop:16}}>
+        <button className="btn" disabled={!ok}
+          onClick={()=>{ logEvent(session.sessionId,"video_watched_total",{watched, views}); onDone(); }}>
+          {ok ? "映像を確認した・次へ"
+              : (need > 1 ? `あと${need - views}回再生してください` : "最後まで再生してください")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ------- Likert / 設問レンダラ -------
+function Likert({ item, value, onChange, likert }) {
+  const opts = [];
+  for (let i = likert.min; i <= likert.max; i++) opts.push(i);
+  return (
+    <div className={"qitem"+(value!==undefined?" answered":"")}>
+      <div className="qtext">{item.text}</div>
+      <div className="likert">
+        {opts.map(n => (
+          <label key={n} className={value===n?"on":""}>
+            <input type="radio" name={item.id} checked={value===n} onChange={()=>onChange(item.id,n)} />
+            {n}
+          </label>
+        ))}
+      </div>
+      <div className="endlabels">
+        <span>{likert.min_label}</span>
+        {likert.mid_label && <span>{likert.mid_label}</span>}
+        <span>{likert.max_label}</span>
+      </div>
+    </div>
+  );
+}
+
+function MixedItem({ item, value, onChange }) {
+  if (item.type === "number")
+    return <div className="qitem"><div className="qtext">{item.text}</div>
+      <input type="number" min={item.min} max={item.max} value={value||""} onChange={e=>onChange(item.id, e.target.value)} style={{maxWidth:120}} /></div>;
+  if (item.type === "choice")
+    return <div className="qitem"><div className="qtext">{item.text}</div>
+      <select value={value||""} onChange={e=>onChange(item.id, e.target.value)}>
+        <option value="">選択してください</option>
+        {item.options.map(o=><option key={o} value={o}>{o}</option>)}
+      </select></div>;
+  // 自由記述（研究3の認識チェックの自由再生リコール）。クローズド項目より前に置く。
+  if (item.type === "text")
+    return <div className="qitem"><div className="qtext">{item.text}</div>
+      <textarea rows="4" value={value||""} onChange={e=>onChange(item.id, e.target.value)} {...NO_PASTE}
+        placeholder="例）〜だった、〜が見えた …" /></div>;
+  // likert-in-mixed (attention check)
+  return <Likert item={item} value={value} onChange={onChange} likert={{min:1,max:7,min_label:"1",max_label:"7"}} />;
+}
+
+function SurveyForm({ form, onSubmit }) {
+  const [ans, setAns] = useState({});
+  const [busy, setBusy] = useState(false);   // 送信中の二重クリック防止（次画面への遷移が遅くても連打させない）
+  const set = (id, v) => setAns(a => ({...a, [id]: v}));
+  const likert = form.likert || {min:1,max:7,min_label:"",max_label:""};
+  // 全項目そろっているか簡易チェック
+  const allItems = form.sections.flatMap(s => s.items);
+  const answered = allItems.filter(it => ans[it.id] !== undefined && ans[it.id] !== "").length;
+  const done = answered === allItems.length;
+  return (
+    <div className="card">
+      <h2>{form.title}</h2>
+      <p className="mut">{form.instruction}</p>
+      {allItems.length > 1 &&
+        <div style={{position:"sticky", top:96, zIndex:5, textAlign:"right", pointerEvents:"none"}}>
+          <span className={"chip"+(done?" ok":"")}>{done ? "✓ " : ""}回答 {answered} / {allItems.length}</span></div>}
+      {form.sections.map((sec,si)=>(
+        <div key={si}>
+          <h3>{sec.name}</h3>
+          {sec.desc && <p className="mut" style={{marginTop:-4, marginBottom:8}}>{sec.desc}</p>}
+          {sec.items.map(it =>
+            sec.scale === "likert"
+              ? <Likert key={it.id} item={it} value={ans[it.id]} onChange={set} likert={sec.likert || likert} />
+              : <MixedItem key={it.id} item={it} value={ans[it.id]} onChange={set} />
+          )}
+        </div>
+      ))}
+      <div style={{marginTop:18}}>
+        <button className="btn" disabled={!done || busy} onClick={async ()=>{
+          if (busy) return;              // 二重送信防止：次画面の取得が遅くても連打を無効化
+          setBusy(true);
+          try { await onSubmit(ans); }
+          catch(e){ setBusy(false); throw e; }   // 失敗時は再送できるよう解除（成功時は画面が切替わるので解除不要）
+        }}>
+          {busy ? "送信中…" : (done ? "回答して次へ" : "すべての項目にお答えください")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ------- 報酬振込先（研究回答とは別の専用テーブルへ保存） -------
+function PaymentForm({ sessionId, participantId, completionCode, expectedAmount, registrantId }) {
+  const [v, setV] = useState({bankName:"", branchName:"", accountType:"普通", accountNumber:"", accountHolder:"",
+                              registrantId: registrantId || ""});
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const set = (k,x) => setV(a=>({...a,[k]:x}));
+  const ready = v.bankName.trim() && v.branchName.trim() && v.accountType &&
+                /^\d{5,8}$/.test(v.accountNumber) && v.accountHolder.trim();
+  if (saved) return <div className="proposal" style={{textAlign:"left",background:"#f0fdf4",borderColor:"#86efac",marginTop:16}}>
+    <b>✅ 振込先を受け付けました</b>
+    <p style={{marginTop:6}}>実験・アンケートの完了記録を確認後、支払い基準を満たしている場合は、
+      <b>{expectedAmount}円</b>を入力いただいた口座へ振り込みます。</p>
+  </div>;
+  return <div className="proposal" style={{textAlign:"left",background:"#fffbeb",borderColor:"#fde68a",marginTop:16}}>
+    <b>💴 報酬の振込先を入力してください</b>
+    <p className="mut" style={{marginTop:6}}>振込先は研究回答とは別に保存し、報酬の支払いと重複参加の確認にのみ使用します。
+      支払い等の完了後、不要となり次第削除します。</p>
+    <div className="grid2" style={{marginTop:10}}>
+      <label>金融機関名<input type="text" value={v.bankName} maxLength="80" onChange={e=>set("bankName",e.target.value)} placeholder="例）○○銀行" /></label>
+      <label>支店名<input type="text" value={v.branchName} maxLength="80" onChange={e=>set("branchName",e.target.value)} placeholder="例）○○支店" /></label>
+      <label>口座種別<select value={v.accountType} onChange={e=>set("accountType",e.target.value)}>
+        <option value="普通">普通</option><option value="当座">当座</option>
+      </select></label>
+      <label>口座番号<input type="text" value={v.accountNumber} inputMode="numeric" maxLength="8"
+        onChange={e=>set("accountNumber",e.target.value.replace(/\D/g,""))} placeholder="数字5〜8桁" /></label>
+    </div>
+    <label style={{display:"block",marginTop:10}}>口座名義（カタカナ）
+      <input type="text" value={v.accountHolder} maxLength="80" onChange={e=>set("accountHolder",e.target.value)} placeholder="例）オガタ モトキ" />
+    </label>
+    {error && <p className="err" style={{marginTop:8}}>{error}</p>}
+    <button className="btn" style={{marginTop:12}} disabled={!ready || busy} onClick={async()=>{
+      setBusy(true); setError("");
+      try {
+        const r = await api("/api/payment","POST",{sessionId,participantId,completionCode,...v});
+        if (Number(r.amount) !== Number(expectedAmount)) throw new Error("報酬額の確認に失敗しました");
+        setSaved(true);
+      } catch(e) { setError(e.message); setBusy(false); }
+    }}>{busy ? "送信中…" : "振込先を登録する"}</button>
+  </div>;
+}
+
+// ------- 交渉チャット (研究2) -------
+function Negotiation({ session, onDone }) {
+  const [msgs, setMsgs] = useState([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [supMsgs, setSupMsgs] = useState([]);
+  const [supInput, setSupInput] = useState("");
+  const [supBusy, setSupBusy] = useState(false);
+  const [round, setRound] = useState(0);
+  const [confirmAgree, setConfirmAgree] = useState(false);
+  const [agreedRatio, setAgreedRatio] = useState("");
+  const [roundSurvey, setRoundSurvey] = useState(null);   // 交渉中の多段階測定(T1)
+  const [roundDone, setRoundDone] = useState(false);
+  const chatRef = useRef(null);
+  useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [msgs]);
+
+  // ラウンド3到達で一度だけ、交渉中の状態（感情・疲労）を測定
+  useEffect(()=>{
+    if (round===3 && !roundDone && !roundSurvey) {
+      api("/api/form?sessionId="+session.sessionId+"&stage=round","GET")
+        .then(r=>setRoundSurvey({stage:"round", ...r.form})).catch(()=>{});
+    }
+  }, [round]);
+
+  const send = async () => {
+    if (!input.trim() || busy) return;
+    const text = input.trim(); setInput(""); setBusy(true);
+    setMsgs(m => [...m, {role:"user", text}]);
+    try {
+      const r = await api("/api/negotiate", "POST", {sessionId: session.sessionId, message: text});
+      // 開示ゲーム: 検証者/仲介者メッセージを先に差し込む
+      (r.verifier_messages||[]).forEach(t => setMsgs(m => [...m, {role:"verifier", text:t}]));
+      if (r.mediator_message) setMsgs(m => [...m, {role:"mediator", text:r.mediator_message}]);
+      setMsgs(m => [...m, {role:"opp", text: r.reply}]);
+      setRound(r.round);
+    } catch(e){ setMsgs(m => [...m, {role:"opp", text:"（通信エラー: "+e.message+"）"}]); }
+    setBusy(false);
+  };
+  const askSupport = async () => {
+    if (!supInput.trim() || supBusy) return;
+    const q = supInput.trim(); setSupInput(""); setSupBusy(true);
+    setSupMsgs(m => [...m, {role:"user", text:q}]);
+    try {
+      const r = await api("/api/support", "POST", {sessionId: session.sessionId, message: q});
+      setSupMsgs(m => [...m, {role:"sup", text: r.reply}]);
+    } catch(e){ setSupMsgs(m => [...m, {role:"sup", text:"（エラー: "+e.message+"）"}]); }
+    setSupBusy(false);
+  };
+
+  return (
+    <div className="card">
+      <h2>示談交渉</h2>
+      <p className="mut">あなたは事故の被害者です。相手方（保険会社の担当者）と、過失割合について交渉してください。
+        納得できる割合で合意できたら「交渉を終える」を押してください。（ラウンド {round}）</p>
+      <div className="chat" ref={chatRef}>
+        {msgs.length===0 && <p className="mut center">まず、あなたの主張を書いて送信してください。</p>}
+        {msgs.map((m,i)=>{
+          const cls = m.role==="user" ? "user" : (m.role==="verifier"||m.role==="mediator") ? "sup" : "opp";
+          const tag = m.role==="verifier" ? "🔍 検証者 " : m.role==="mediator" ? "⚖️ 仲介者 " : "";
+          return <div key={i} className={"msg "+cls}>{tag&&<b>{tag}</b>}{m.text}</div>;
+        })}
+        {busy && <div className="msg opp">…入力中…</div>}
+      </div>
+      {roundSurvey
+        ? <div style={{marginTop:10}}>
+            <p className="mut">交渉の途中確認です。現在の状態についてお答えください。</p>
+            <SurveyForm form={roundSurvey} onSubmit={async(ans)=>{
+              await api("/api/survey","POST",{sessionId:session.sessionId,stage:"round",responses:ans});
+              setRoundDone(true); setRoundSurvey(null);
+            }} />
+          </div>
+        : <>
+          <div className="row">
+            <textarea rows="2" value={input} placeholder="あなたの発言を入力"
+              onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter"&&e.ctrlKey) send(); }} />
+            <button className="btn" onClick={send} disabled={busy}>送信</button>
+          </div>
+          <div className="mut" style={{marginTop:4}}>Ctrl+Enter でも送信できます</div>
+        </>}
+
+      {session.support_enabled &&
+        <div className="support-panel">
+          <b>合意形成支援システム</b><span className="badge">あなたを支援</span>
+          <p className="mut" style={{marginTop:4}}>過失割合の基準・争点・類似判例について質問できます（中立的な情報提供）。</p>
+          <div className="chat" style={{height:200}}>
+            {supMsgs.length===0 && <p className="mut center">例:「この事故の過失割合の基準と争点は？」</p>}
+            {supMsgs.map((m,i)=><div key={i} className={"msg "+(m.role==="user"?"user":"sup")}>{m.text}</div>)}
+            {supBusy && <div className="msg sup">…調べています…</div>}
+          </div>
+          <div className="row">
+            <input type="text" value={supInput} placeholder="支援システムに質問"
+              onChange={e=>setSupInput(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") askSupport(); }} />
+            <button className="btn ghost" onClick={askSupport} disabled={supBusy}>質問</button>
+          </div>
+        </div>}
+
+      {!confirmAgree &&
+        <div style={{marginTop:20, display:"flex", gap:10}}>
+          <button className="btn" disabled={round<1} onClick={()=>setConfirmAgree(true)}>合意して交渉を終える</button>
+          <button className="btn ghost" disabled={round<1} onClick={()=>onDone(false, null)}>合意せず交渉を打ち切る</button>
+        </div>}
+      {confirmAgree &&
+        <div className="proposal" style={{marginTop:20, background:"#f0fdf4"}}>
+          <b>最終的に合意した過失割合を入力してください</b>
+          <p className="mut" style={{marginTop:4}}>あなた（被害者）側の過失割合は何%で合意しましたか？（0〜100）</p>
+          <div className="row" style={{alignItems:"center"}}>
+            <input type="number" min="0" max="100" value={agreedRatio}
+              onChange={e=>setAgreedRatio(e.target.value)} style={{maxWidth:120}} />
+            <span>： 相手方 {agreedRatio!==""? (100-Number(agreedRatio)) : "--"}</span>
+          </div>
+          <div style={{marginTop:10, display:"flex", gap:10}}>
+            <button className="btn" disabled={agreedRatio===""}
+              onClick={()=>onDone(true, Number(agreedRatio))}>この割合で確定</button>
+            <button className="btn ghost" onClick={()=>setConfirmAgree(false)}>交渉に戻る</button>
+          </div>
+        </div>}
+    </div>
+  );
+}
+
+// ------- 203x 示談プラットフォーム: 指示型交渉 (研究3) -------
+function PlatformNegotiation({ session, onDone }) {
+  const brief = session.game_brief || {};
+  const maxR = brief.max_rounds || 7;   // 交渉ラウンド上限（超過は裁定へ）
+  const framing = brief.framing || null;       // Round 0: 事故形態・基本割合（判タ由来・決定論）
+  const [framingOk, setFramingOk] = useState(!framing);  // Round 0 を確認済みか
+  const [msgs, setMsgs] = useState([]);        // {role: victim_agent|opp|mediator, text}
+  const [claim, setClaim] = useState("");      // 参加者の自由記述の主張
+  const [note, setNote] = useState("");        // 代理人への私的メモ（公開されない）
+  const [roundSurvey, setRoundSurvey] = useState(null);  // 交渉中の状態測定（感情・疲労）
+  const [roundDone, setRoundDone] = useState(false);
+  const [disclose, setDisclose] = useState(false);
+  const [disclosed, setDisclosed] = useState(false);   // 提出済み（不可逆）
+  const [askDisclose, setAskDisclose] = useState(false); // 提出の確認中（インライン確認。window.confirm は使わない）
+  const [oppDisclosed, setOppDisclosed] = useState(false);
+  const [thirdPartyConfirmed, setThirdPartyConfirmed] = useState(false);
+  const [proposed, setProposed] = useState(null);      // 調停AIのエビデンス割合 [被害者,相手方]
+  const [busy, setBusy] = useState(false);
+  const [round, setRound] = useState(0);
+  const [activeRound, setActiveRound] = useState(1);   // 表示中のラウンドタブ
+  const [agreement, setAgreement] = useState(null);    // 双方が明示受諾した割合（A側）
+  const [confirmAgree, setConfirmAgree] = useState(false);
+  const chatRef = useRef(null);
+  // 新しいラウンドが確定したら、その最新タブに自動フォーカス
+  useEffect(()=>{ if(round>=1) setActiveRound(round); }, [round]);
+  // 表示はラウンドタブ単位（そのラウンドの3〜4発言のみ）なので、末尾ではなく先頭に合わせる。
+  // 末尾固定だと、最初に読むべき「あなたの代理人の発言」が隠れてしまう（2026-09 専門家FB）。
+  // ※ busy を依存に含め、応答描画が全部終わってからスクロールする。smooth だと
+  //   直後の再描画（調停案パネルの出現など）でレイアウトが伸び、スクロールが行き過ぎて
+  //   チャットが画面上方へ外れてしまう。二重 rAF + 即時スクロールで確実に先頭に合わせる。
+  useEffect(()=>{
+    if (busy || !chatRef.current) return;
+    chatRef.current.scrollTop = 0;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const el = chatRef.current;
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 12;
+      window.scrollTo({top: Math.max(0, y), behavior: "auto"});
+    }));
+  }, [msgs, activeRound, busy]);
+
+  // ラウンド3到達で一度だけ、交渉中の状態（感情・疲労）を測定。
+  // 尺度は実装済みだったが研究3では呼ばれていなかった（2026-09 専門家FB: 感情の軽量チャネル）。
+  useEffect(()=>{
+    if (round===3 && !roundDone && !roundSurvey) {
+      api("/api/form?sessionId="+session.sessionId+"&stage=round","GET")
+        .then(r=>setRoundSurvey({stage:"round", ...r.form})).catch(()=>{});
+    }
+  }, [round]);
+
+  const submit = async () => {
+    if (busy) return;
+    // 初回は主張かドラレコ提出が必要。2手目以降は「特に追加なし」でも交渉を一手進められる。
+    if (!claim.trim() && !disclose && round < 1) return;
+    setBusy(true);
+    try {
+      const r = await api("/api/negotiate","POST",
+        {sessionId: session.sessionId, claim_text: claim, disclose_dashcam: disclose, note: note});
+      setMsgs(m=>[...m,
+        {role:"victim_agent", text:r.victim_statement, round:r.round},
+        {role:"opp", text:r.opponent_statement, round:r.round},
+        {role:"mediator", text:r.mediator_statement, round:r.round},
+        ...(r.advice ? [{role:"advice", text:r.advice, round:r.round}] : [])]);
+      setRound(r.round);
+      setClaim("");
+      setNote("");
+      if (r.disclosed) { setDisclosed(true); setDisclose(true); }  // 提出は取り消せない
+      else setDisclose(false);   // 提出予定のまま次の手に持ち越さない
+      if (r.opponent_disclosed) setOppDisclosed(true);
+      if (r.third_party_confirmed) setThirdPartyConfirmed(true);
+      if (r.proposed_ratio) setProposed(r.proposed_ratio);
+      if (r.agreement_ready) {
+        setAgreement(Number(r.agreement_ratio));
+      }
+    } catch(e){ setMsgs(m=>[...m,{role:"mediator", text:"（通信エラー: "+e.message+"）", round:activeRound}]); }
+    setBusy(false);
+  };
+
+  return (
+    <div className="card">
+      <h2>示談プラットフォーム（あなたの代理人が交渉します）</h2>
+      <p className="mut">あなたは事故の当事者（当事者A）です。<b>自分の代理人AIに主張を伝える</b>と、
+        調停AIの進行のもと相手方の代理人と交渉します。相手方“本人”の入力は見えませんが、
+        <b>相手方代理人の主張は見えます</b>。（ラウンド {round} ／ 最大 {maxR}）</p>
+      <div style={{marginBottom:6}}><span className="chip">ROUND {round} / {maxR}
+        <span className="dots">{Array.from({length:maxR},(_,i)=>
+          <i key={i} className={i<round ? "on" : (i===round && busy ? "now" : "")}/>)}</span></span></div>
+
+      {/* Round 0: 事故形態と基本割合の確認。実務では「どの判例タイムズ図か」を合意し基本割合の
+          目線を合わせてから修正要素を検討する（2026-09 専門家FB）。判タ図・基本割合は過失構造
+          セル①②③で共通なので条件は漏洩せず、全参加者に同一のアンカーが入る。
+          LLMを使わない静的テキストで、交渉ラウンドは消費しない。 */}
+      {framing && !framingOk &&
+        <div className="proposal" style={{marginTop:12, background:"#eff6ff", borderColor:"#bfdbfe"}}>
+          <b>⚖️ 調停AI：まず事故形態と基本の過失割合を確認します</b>
+          <p style={{marginTop:8}}>本件は「{framing.figure}」（{framing.title}）に当たります。
+            この類型の<b>基本の過失割合は 当事者A {framing.base_ratio[0]}：相手方 {framing.base_ratio[1]}</b> です。</p>
+          <p className="mut" style={{marginTop:6}}>これは事故の型だけで決まる出発点の数字で、
+            ここから<b>双方が主張する事情（過失割合を加減する要素）を検討して、最終的な割合を決めます</b>。
+            事故の型そのものについては、双方の代理人から異議は出ていません。</p>
+          <div className="msg opp" style={{maxWidth:"100%"}}><b>🏢 相手方代理人 </b>
+            事故形態と基本割合について、当方に異議はありません。</div>
+          <div className="msg user" style={{maxWidth:"100%"}}><b>🧑‍💼 あなたの代理人 </b>
+            事故形態と基本割合の点は、こちらも争いません。加減の事情について協議しましょう。</div>
+          <button className="btn" style={{marginTop:10}}
+            onClick={()=>{ logEvent(session.sessionId,"framing_confirmed",
+                             {figure: framing.figure, base_ratio: framing.base_ratio});
+                           setFramingOk(true); }}>
+            確認して交渉に進む</button>
+        </div>}
+
+      {(() => {
+        const roundsPresent = [];
+        msgs.forEach(m=>{ if(!roundsPresent.includes(m.round)) roundsPresent.push(m.round); });
+        if (!framingOk) return null;   // Round 0 の確認が済むまで交渉ログは出さない
+        return (<>
+          {roundsPresent.length>0 &&
+            <div className="rtabs">
+              {roundsPresent.map(rn=>
+                <button key={rn} className={"rtab"+(rn===activeRound?" active":"")}
+                  onClick={()=>setActiveRound(rn)}>ラウンド {rn}</button>)}
+            </div>}
+          <div className="chat" ref={chatRef}>
+            {msgs.length===0 && <p className="mut center">下の欄に主張を書き、「代理人に主張させる」を押してください。</p>}
+            {msgs.filter(m=>m.round===activeRound).map((m,i)=>{
+              const cls = m.role==="opp" ? "opp" : m.role==="advice" ? "advice" : m.role==="mediator" ? "sup" : "user";
+              const tag = m.role==="victim_agent" ? "🧑‍💼 あなたの代理人 " : m.role==="opp" ? "🏢 相手方代理人 "
+                : m.role==="advice" ? "💡 代理人からの助言 " : "⚖️ 調停AI ";
+              return <div key={i} className={"msg "+cls}><b>{tag}</b>{m.text}</div>;
+            })}
+            {busy && <div className="msg sup">…代理人がやり取りしています…</div>}
+          </div>
+        </>);
+      })()}
+
+      {(disclosed || oppDisclosed || thirdPartyConfirmed) &&
+        <div className="instr" style={{background:"#f0fdf4", borderColor:"#bbf7d0"}}>
+          <b>🔍 客観証拠の照合状況</b>
+          {disclosed && <div>・あなたのドライブレコーダー：提出・照合済み</div>}
+          {oppDisclosed && <div>・相手方のドライブレコーダー：提出・照合済み</div>}
+          {thirdPartyConfirmed && <div>・第三者の客観記録：照合済み</div>}
+          <div className="mut">照合済みの映像について、内容確認待ちとして争点を留保することはありません。</div>
+        </div>}
+
+      {!confirmAgree && agreement===null && round >= maxR && <div className="instr" style={{background:"#fff7ed", borderColor:"#fed7aa"}}>
+        <b>交渉ラウンドの上限（{maxR}回）に達しました。</b>
+        <p className="mut" style={{marginTop:4}}>双方が同じ過失割合を受諾するには至らなかったため、
+          <b>裁定手続に移ります</b>。裁定では、これまでに提出・確認された
+          証拠や記録に基づいて、プラットフォームが過失割合を決定します。</p>
+      </div>}
+
+      {/* ラウンド3の途中測定（感情・疲労）。回答するまで次の手は進めない。 */}
+      {roundSurvey && !roundDone &&
+        <SurveyForm form={roundSurvey} onSubmit={async (ans)=>{
+          try { await api("/api/survey","POST",
+            {sessionId: session.sessionId, stage:"round", responses: ans}); } catch(e){}
+          setRoundDone(true); setRoundSurvey(null);
+        }} />}
+
+      {framingOk && !roundSurvey && !confirmAgree && agreement===null && round < maxR && <div className="instr">
+        <b>あなたの主張</b>
+        <p className="mut" style={{marginTop:4}}>自身・相手を問わず、この事故の<b>過失割合に影響を与えると
+          あなたが考える点</b>を自由に記述してください（例：速度超過、一時停止無視 など）。
+          何を述べ、何に触れないかはあなたの判断です。</p>
+        {round >= 1 &&
+          <p className="mut" style={{marginTop:2}}>💬 <b>もう述べることがなければ、空欄のまま「交渉を一手進める」</b>で相手方・調停AIの応答を先に進められます。
+            調停AIや相手方の割合を受け入れるなら、その意思を代理人に伝えてください。
+            <b>相手方も同じ割合を受諾したときにだけ</b>、示談を終了できます。</p>}
+        <p className="mut" style={{marginTop:2}}>📡 参考：あなたが伏せても、相手方の提出や第三者の客観記録により、事実が別ルートで明らかになることがあります（可能性の程度は事前には分かりません）。</p>
+        <textarea rows="4" value={claim} onChange={e=>setClaim(e.target.value)} {...NO_PASTE}
+          placeholder={proposed
+            ? `例）調停AIの当事者A${proposed[0]}：相手方${proposed[1]}の案を受け入れます。`
+            : "例）相手は一時停止を無視して進入してきた。自分は普通に走っていた。…"} />
+        {/* ドラレコ提出（開示DV）。2026-11 不具合：説明文ごと <label> で包んでいたため、スマホで説明文や
+            その周辺をタップしただけでチェックが入り、気づかず提出される事故が起きた。
+            → 専用ボタン＋インライン確認でしか「提出予定」にならず、送信ボタン直前に警告を出し、取りやめも可能にする。 */}
+        <div className="toggle" style={{display:"block", ...(disclosed?{opacity:.85}:{})}}>
+          {disclosed
+            ? <b>🎥 ドライブレコーダー映像は提出済みです（取り消せません）。</b>
+            : disclose
+              ? <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 10px"}}>
+                  <b>⚠️ 次の「代理人に主張させる」で、あなたのドライブレコーダー映像を提出します。</b>
+                  <div><button type="button" className="btn ghost" style={{marginTop:6,fontSize:13,padding:"5px 10px"}}
+                    onClick={()=>setDisclose(false)}>提出をやめる</button></div>
+                </div>
+              : askDisclose
+                ? <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:"8px 10px"}}>
+                    <b>本当に提出しますか？</b>提出は一度のみで、<b>後から取り消すことはできません</b>。
+                    <div style={{display:"flex",gap:8,marginTop:6,flexWrap:"wrap"}}>
+                      <button type="button" className="btn" style={{fontSize:13,padding:"5px 10px"}}
+                        onClick={()=>{ setDisclose(true); setAskDisclose(false); }}>提出する</button>
+                      <button type="button" className="btn ghost" style={{fontSize:13,padding:"5px 10px"}}
+                        onClick={()=>setAskDisclose(false)}>やめる</button>
+                    </div>
+                  </div>
+                : <button type="button" className="btn ghost" style={{fontSize:13,padding:"6px 10px"}}
+                    onClick={()=>setAskDisclose(true)}>🎥 自分のドライブレコーダー映像を証拠として提出する…</button>}
+          <div className="mut" style={{marginTop:6}}>ℹ️ 提出には<b>メリットとデメリットの両方の可能性</b>があります。提出すると、映像に写った
+            双方の挙動が<b>客観的な事実として確定します（あなたに有利に働く点も、不利に働く点も含みます）</b>。
+            <b>提出は一度のみで、後から取り消すことはできません。</b>
+            チャットで「提出する」と書いても提出にはなりません（このボタンからのみ提出できます）。</div>
+        </div>
+        {/* 私的メモ: 代理人には伝わるが公開発言には出さない。感情や言いにくいことの受け皿
+            （2026-09 専門家FB: 感情論を入れ込む軽量チャネル）。事後コーディング用に保存する。 */}
+        <details style={{marginTop:8}}>
+          <summary className="mut" style={{cursor:"pointer"}}>
+            代理人への私的なメモを残す（交渉の場には公開されません）</summary>
+          <textarea rows="2" value={note} onChange={e=>setNote(e.target.value)} {...NO_PASTE}
+            placeholder="例）相手の言い方に納得がいかない、この条件は飲みたくない …"
+            style={{marginTop:6}} />
+        </details>
+        {disclose && !disclosed &&
+          <p style={{marginTop:8,fontWeight:700,color:"#b91c1c"}}>⚠️ この手でドライブレコーダー映像を提出します（取り消せません）。</p>}
+        <button className="btn" onClick={submit} disabled={busy||(!claim.trim()&&!disclose&&round<1)}>
+          {disclose && !disclosed ? "映像を提出して代理人に主張させる"
+            : claim.trim() ? "代理人に主張させる" : "特に追加なし（交渉を一手進める）"}</button>
+      </div>}
+
+      {proposed && !confirmAgree && agreement===null &&
+        <div className="proposal" style={{marginTop:14, background:"#eff6ff", borderColor:"#bfdbfe"}}>
+          ⚖️ <b>調停AIの提案（確認された証拠に基づく妥当割合）：あなた（当事者A） {proposed[0]}％ ： 相手方 {proposed[1]}％</b>
+          <div className="mut" style={{marginTop:4}}>これは調停AIの勧告であり、まだ双方の合意ではありません。受け入れる場合は、主張欄で代理人にその意思を伝えてください。</div>
+        </div>}
+
+      {!confirmAgree && agreement!==null &&
+        <div className="proposal" style={{marginTop:20, background:"#f0fdf4"}}>
+          {/* 双方合意＝示談終了。「交渉に戻る」は設けない（論文上も不要。2026-11 ユーザー判断） */}
+          <b>✅ 双方の合意が成立しました。大変お疲れさまでした！</b>
+          <p style={{marginTop:6}}>あなた（当事者A） {agreement}％ ： 相手方 {100-agreement}％ で示談が成立しました。</p>
+          <button className="btn" disabled={busy} onClick={async()=>{
+            if (busy) return; setBusy(true); await onDone(true, agreement); setBusy(false);
+          }}>{busy ? "処理中…" : "示談を終えて次へ進む"}</button>
+        </div>}
+
+      {!confirmAgree && agreement===null && round >= maxR &&
+        <div style={{marginTop:20}}>
+          <button className="btn ghost" disabled={busy} onClick={async()=>{
+            if (busy) return; setBusy(true); await onDone(false, null); setBusy(false);
+          }}>{busy ? "処理中…" : "合意に至らなかったため、裁定に移る"}</button>
+          <p className="mut" style={{marginTop:8}}>ℹ️「裁定」は、合意できないときに<b>中立の調停AIが、その時点までに確認された証拠だけで過失割合を確定する</b>仕組みです。
+            <b>示談はここで完了します（裁判所には進みません）</b>。ただし、あなたに<b>有利な証拠を提出していなければ不利な割合で確定する</b>こともあります。</p>
+        </div>}
+    </div>
+  );
+}
+
+// 実験者用パネルのセル選択肢（backend/app.py の *_CELLS の並び順と一致させること）
+const STUDY_LABELS = { study1:"研究1 和解案評価", study2:"研究2 対話型交渉", study3:"研究3 示談プラットフォーム" };
+const CELL_LABELS = {
+  study1: ["数値のみ×AI起草","数値のみ×保険起草","ルール×AI起草","ルール×保険起草",
+           "当てはめ×AI起草","当てはめ×保険起草","類似判例×AI起草","類似判例×保険起草"],
+  study2: ["支援なし×協調","支援なし×強硬","支援あり×協調","支援あり×強硬"],
+  study3: ["監視少 低リスク","監視多 高リスク"],
+};
+const SCENARIO_LABELS = { A_intersection:"A 出会い頭(信号なし)", B_right_turn:"B 右折直進", C_signal_crossing:"C 信号交差点" };
+// 実験者用: 研究3の過失構造セル（判例定義の active_true_modifiers と対応。参加者には出さない）
+const FAULT_CELL_LABELS = { innocent:"① 潔白(純有利)", mixed:"② 混合(両刃・本命)", main_fault:"③ 主責(純不利)" };
+
+// ------- 進行HUD（ゲーム風）-------
+// 3シナリオ＝3ステージとして、今どこにいて残りがいくつかを常に見せる（長丁場の離脱対策）。
+// 進行位置しか出さない：合意割合・報酬などの途中成績は、後続の試行の行動を変えうるので出さない。
+const HUD_PHASES = [["🎬","映像"],["📄","状況確認"],["🤝","交渉"]];
+const HUD_PHASE_OF = {video:0, perception:0, t0:1, scene:1, negotiate:2, finalizing:2, post_trial:2, stageClear:3,
+                      t2:3, done:3};
+function StageHud({ index, total, step }) {
+  const phase = HUD_PHASE_OF[step] ?? 0;
+  const allClear = step === "t2" || step === "done";
+  return <div className="hud">
+    <div className="hud-top">
+      <span className="hud-stage">{allClear ? "🏆 ALL CLEAR" : `STAGE ${index+1} / ${total}`}</span>
+      <span className="pips">{Array.from({length:total},(_,i)=>{
+        const st = allClear || i < index || (i === index && step === "stageClear") ? "done" : i === index ? "now" : "";
+        return <span key={i} className={"pip "+st}>{st==="done" ? "✓" : i+1}</span>; })}</span>
+    </div>
+    {/* 採点ルールは状況確認〜交渉の間ずっと見せる（斜め読みで見落とす・途中で忘れるため。2026-11 参加者目線の指摘）。
+        得点を上げる2つだけを繰り返すと「盛る」方向に誘導するので、減点ルールも必ず同じ扱いで並べる。
+        途中の得点そのものは出さない（上記の方針どおり）。 */}
+    {(step === "scene" || step === "negotiate") &&
+      <div className="hud-rule">🏆 {IS_CW ? "得点" : "報酬"}アップ：<b>⚡ 早く合意</b>・<b>👍 自分に有利な過失割合</b>
+        <span className="hud-rule-minus">／ ⚠️ 証拠と食い違う説明が見つかると<b>減点</b></span></div>}
+    {!allClear && step !== "stageClear" &&
+      <div className="phases">{HUD_PHASES.map(([ic,lb],i)=>
+        <span key={i} className={"phase "+(i<phase?"done":i===phase?"now":"")}>{ic} {lb}</span>)}</div>}
+  </div>;
+}
+
+function Confetti() {
+  const colors = ["#2563eb","#7c3aed","#f59e0b","#10b981","#ef4444"];
+  return <div className="confetti" aria-hidden="true">{Array.from({length:36},(_,i)=>
+    <i key={i} style={{left:(i*97%100)+"%", background:colors[i%colors.length], animationDelay:((i*37)%60)/100+"s"}}/>)}</div>;
+}
+
+// ------- メインアプリ（状態機械） -------
+function App() {
+  // 参加者はどの研究を実施するかを選ばない。募集リンクの ?study= で1つに割り当てる（既定=研究3）。
+  // 研究者/開発者は ?study=study1 等や ?devKey=...&cell=N で任意の研究・セルに到達できる。
+  const [entry] = useState(()=>{ const p=new URLSearchParams(location.search);
+    const st = p.get("study");
+    const cellRaw = p.get("cell");
+    return { study: ["study1","study2","study3"].includes(st) ? st : "study3",
+             devKey: p.get("devKey") || null,
+             cell: cellRaw==null ? null : (/^\d+$/.test(cellRaw) ? Number(cellRaw) : cellRaw),
+             scenario: p.get("scenario") || null,
+             // 研究3の過失セル。URLで指定できないと dev 検証のたびに画面で選び直すことになる。
+             faultCell: ["innocent","mixed","main_fault"].includes(p.get("faultCell"))
+                        ? p.get("faultCell") : null }; });
+  const [step, setStep] = useState("landing");
+  const [study, setStudy] = useState(entry.study);
+  // 実験者用: devKeyありのとき画面で研究/セル/シナリオを切替える（バックエンドのセル定義順と一致）
+  const [devStudy, setDevStudy] = useState(entry.study);
+  const [devCell, setDevCell] = useState(typeof entry.cell === "number" ? entry.cell : 0);
+  const [devScenario, setDevScenario] = useState(entry.scenario || "A_intersection");
+  const [devFaultCell, setDevFaultCell] = useState(entry.faultCell || "mixed");   // 実験者用: 研究3の過失セル
+  const [session, setSession] = useState(null);
+  const [err, setErr] = useState("");
+  const [outcome, setOutcome] = useState(null);
+  // 研究3の被験者内3試行: 参加者を連結する participantId と試行位置、各試行の結果。
+  const [participantId, setParticipantId] = useState(null);
+  const [trialIndex, setTrialIndex] = useState(0);
+  const [outcomes, setOutcomes] = useState([]);
+  const [completionCode] = useState("SETL-" + Math.random().toString(36).slice(2,8).toUpperCase());
+  const [form, setForm] = useState(null);
+  const [busyNext, setBusyNext] = useState(false);   // ステージクリア画面の二重押し防止
+  const [hasLicense, setHasLicense] = useState(false);   // クラウドワークス経由の参加条件（自己申告）
+  // クラウドソーシング(Prolific)識別子・返送URLをURLパラメータから取得
+  const [crowd] = useState(()=>{ const p=new URLSearchParams(location.search);
+    // rid = ドライバー向けプラットフォームの登録者ID（募集DMのリンクに付ける）。
+    return { prolificPid: p.get("PROLIFIC_PID"), studyPid: p.get("STUDY_ID"),
+             sessionPid: p.get("SESSION_ID"), returnUrl: p.get("return_url"),
+             registrantId: (p.get("rid") || "").replace(/[^0-9A-Za-z._-]/g,"").slice(0,64) || null }; });
+
+  let progress = {landing:5, video:15, t0:25, scene:40, negotiate:58, round:62, t1:72, t2:88, done:100}[step] || 0;
+  // 研究3の3試行では、動画→概要→交渉の区間を試行位置で按分し、バーが逆戻りしないようにする。
+  const WITHIN = {video:0.15, perception:0.25, t0:0.32, scene:0.45, negotiate:0.8, finalizing:0.9,
+                  post_trial:0.95, stageClear:1};
+  if (study === "study3" && participantId && step in WITHIN) {
+    const total = (session && session.trial && session.trial.total) || 3;
+    const within = WITHIN[step];
+    progress = Math.round(20 + ((trialIndex + within) / total) * 65);   // 20→85 を試行で分割
+  }
+
+  const loadForm = async (stage) => {
+    const r = await api("/api/form?sessionId="+session.sessionId+"&stage="+stage, "GET");
+    setForm({stage, ...r.form});
+  };
+
+  // 実験者用: リロードせずに設定パネル(landing)へ戻る。dropdown選択(devScenario/devCell/
+  // devFaultCell)は保持されるので、シナリオ/過失セルを変えて即やり直せる（切替の不具合回避）。
+  const resetToDev = () => {
+    setStep("landing"); setSession(null); setForm(null); setOutcome(null);
+    setOutcomes([]); setParticipantId(null); setTrialIndex(0); setErr("");
+  };
+
+  const start = async () => {
+    setErr("");
+    // 参加者は entry.study 固定。実験者(devKey)は画面のプルダウン選択を使う。
+    const which = entry.devKey ? devStudy : entry.study;
+    try {
+      const body = {study: which, registrantId: crowd.registrantId, source: SOURCE,
+        hasLicense: IS_CW ? hasLicense : undefined,
+        prolificPid: crowd.prolificPid, studyPid: crowd.studyPid, sessionPid: crowd.sessionPid};
+      let pid = null;
+      // 開発者トライアル: 任意セル/シナリオ/過失セルを強制割付（分析からは除外・3試行ループはしない）
+      if (entry.devKey) {
+        body.devKey = entry.devKey; body.cell = devCell; body.scenario = devScenario;
+        if (which === "study3") body.faultCell = devFaultCell;
+      } else if (which === "study3") {
+        // 本番の研究3参加者: participantId で3試行を連結（ラテン方格はサーバが割付）
+        pid = "P-" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+        body.participantId = pid; body.trialIndex = 0;
+      }
+      const s = await api("/api/session", "POST", body);
+      setStudy(which); setSession(s); setParticipantId(pid); setTrialIndex(0); setOutcomes([]);
+      const r = await api("/api/form?sessionId="+s.sessionId+"&stage=t0", "GET");
+      setForm({stage:"t0", ...r.form});
+      // 同意 → 事故動画視聴 → T0（動画URLがあれば視聴ステップを挟む）
+      setStep(s.video_url ? "video" : "t0");
+    } catch(e){ setErr("開始できませんでした: "+e.message); }
+  };
+
+  // 研究3の次の試行を開始（ラテン方格の次セル・ジオメトリをサーバから受ける）→ 動画から再開。
+  const startNextTrial = async (next) => {
+    const body = {study: "study3", participantId, trialIndex: next, registrantId: crowd.registrantId, source: SOURCE,
+      prolificPid: crowd.prolificPid, studyPid: crowd.studyPid, sessionPid: crowd.sessionPid};
+    const s = await api("/api/session", "POST", body);
+    setSession(s); setTrialIndex(next); setStep(s.video_url ? "video" : "scene");
+  };
+
+  const submitSurvey = async (answers) => {
+    const stage = form.stage;
+    const surveyBody = {sessionId: session.sessionId, stage, responses: answers};
+    if (stage === "t2") surveyBody.completionCode = completionCode;
+    if (stage === "t2" && IS_CW) surveyBody.integrity = {...INTEGRITY};
+    await api("/api/survey", "POST", surveyBody);
+    if (stage === "t0") setStep("scene");
+    else if (stage === "perception") {
+      // 認識チェックは毎試行。第1試行だけこの後に事前アンケート(t0)を挟む。
+      if (trialIndex === 0) { await loadForm("t0"); setStep("t0"); }
+      else setStep("scene");
+    }
+    else if (stage === "post_trial") {
+      // 各試行の交渉直後。まだ試行が残っていれば次の試行へ、最後なら事後アンケートへ。
+      // 3試行の本番は、次へ行く前に「ステージクリア」画面で一息つかせる（次の試行・事後アンケートはそこから）。
+      if (participantId) setStep("stageClear");
+      else { await loadForm("t2"); setStep("t2"); }
+    }
+    else if (stage === "t1") { await loadForm("t2"); setStep("t2"); }
+    else if (stage === "t2") setStep("done");
+  };
+
+  const finalizeNego = async (userAgreed, agreedRatio) => {
+    setErr("");
+    // 研究3は終了ゲートがAPIで拒否されても交渉状態を失わないよう、応答まで画面を保持する。
+    if (study !== "study3") setStep("finalizing");
+    try {
+      const r = await api("/api/finalize", "POST",
+        {sessionId: session.sessionId, userAgreed, agreedRatio});
+      setOutcome(r);
+      setOutcomes(prev => [...prev, {...r, fault_cell: session.trial && session.trial.fault_cell,
+                                    scenario: session.scenario && session.scenario.id}]);
+      // 研究3は交渉直後に、その試行についてのふりかえり(post_trial)を1問だけ挟む。
+      // 次の試行へ進むか事後アンケートへ行くかは、その回答後に submitSurvey が振り分ける。
+      if (study === "study3") {
+        await loadForm("post_trial"); setStep("post_trial");
+        return;
+      }
+    } catch(e){
+      setErr(e.message);
+      if (study !== "study3") setStep("negotiate");
+      return;  // 終了APIが拒否した場合は事後アンケートへ進まない
+    }
+    // 最終試行（または単一試行）の後にだけ、事後アンケート→デブリーフへ。
+    await loadForm("t2"); setStep("t2");
+  };
+
+  // 画面 --------------------------------------------------------------
+  let view = null;
+  if (step === "landing") {
+    // 参加者向けマニュアル：割り当てられた1つの調査を、この手順で最後まで通す。
+    // 研究1は「和解案を評価」、研究2/3は「AIと示談交渉」で中盤の手順が変わる。
+    const effStudy = entry.devKey ? devStudy : entry.study;   // 実験者は選択中の研究を反映
+    const mainTask = effStudy === "study1"
+      ? "提示された和解案を評価する"
+      : "相手方（AI）と示談交渉を行う";
+    const steps = [
+      `事故の映像を見る（${effStudy === "study3" ? REQUIRED_VIEWS + "回" : "1回"}再生します）`,
+      "事前アンケートに回答する",
+      mainTask,
+      "事後アンケートに回答する",
+      effStudy !== "study3" ? "完了（謝礼の手続きへ）"
+        : IS_CW ? "完了（表示される完了コードをクラウドワークスで提出）" : "完了（報酬額と振込先の確認）",
+    ];
+    view = <div className="card">
+      {effStudy === "study3" &&
+        <div className="hero">
+          <div className="hero-k">3 STAGES ・ 約10〜15分</div>
+          <div className="hero-t">🚗 3つの事故シナリオで示談交渉</div>
+          <div className="hero-tiles">{[1,2,3].map(n=>
+            <div key={n} className="hero-tile"><b>{n}</b>STAGE</div>)}</div>
+          {IS_CW && <div className="hero-t" style={{marginTop:10,fontSize:18}}>🏆 高得点を目指そう！</div>}
+        </div>}
+      <h1>交通事故 示談交渉に関する調査</h1>
+      <p>本調査は、交通事故の過失割合をめぐる示談交渉について研究するものです。
+        あなたには<b>事故の{effStudy === "study3" ? "当事者" : "被害者"}</b>の立場で、模擬的なシナリオに参加していただきます。
+        {effStudy === "study3"
+          ? <><b>この調査は、3つの事故シナリオを続けて行い、1回で完結します</b>
+              （1つ終わるごとに次のシナリオへ自動的に進みます。全体で10〜15分ほどです）。
+              <b>途中保存・再開はできないため、続けて回答できる時間を確保してから開始してください。</b></>
+          : <><b>この調査は1回で完結します</b>（複数の課題を続けて行う必要はありません）。</>}</p>
+
+      {IS_CW &&
+        <div className="proposal" style={{background:"#eff6ff",borderColor:"#bfdbfe"}}>
+          <b>📘 はじめに：ことばの意味</b>
+          <ul style={{marginTop:6}}>
+            <li><b>示談（じだん）</b>とは、交通事故などのトラブルを<b>裁判を使わずに、当事者どうしの話し合いで解決する</b>ことです。
+              実際には、保険会社の担当者などが間に入って話し合うことが多く、話し合いで合意した内容で決着します。</li>
+            <li><b>過失割合（かしつわりあい）</b>とは、事故が起きたことについて、<b>それぞれにどれだけ落ち度（不注意）があったか</b>を
+              割合で表したものです。たとえば「あなた 30 ： 相手 70」なら、あなたの落ち度が3割、相手が7割という意味です。
+              <b>自分の割合が小さいほど、自分が負担する損害は少なくなります</b>（つまり、あなたにとって有利です）。</li>
+          </ul>
+          <p className="mut" style={{marginTop:6}}>この調査では、事故の当事者として、この過失割合を相手方と話し合って決めていただきます。</p>
+        </div>}
+
+      <h3>この調査の流れ（所要 約10〜15分）</h3>
+      <ol className="manual">
+        {steps.map((s,i)=><li key={i}>{s}</li>)}
+      </ol>
+      {effStudy === "study3" &&
+        <p className="mut">※ 上記の「映像の視聴」と「示談交渉」は、<b>3つの異なる事故シナリオについて続けて</b>行います。
+          事前・事後のアンケートは、最初と最後に各1回のみです。</p>}
+
+      {effStudy === "study3" && IS_CW && <>
+        <div className="proposal" style={{background:"#fef2f2",borderColor:"#fecaca"}}>
+          <b>🚫 禁止事項（開始前に必ずお読みください）</b>
+          <ul style={{marginTop:6}}>
+            <li><b>ChatGPT などの生成AIの使用は禁止</b>です。交渉での主張やアンケートの記述は、
+              すべて<b>ご自身で考え、ご自身の言葉で</b>入力してください。</li>
+            <li><b>コピー＆ペースト（貼り付け）は禁止</b>です。この調査の入力欄では貼り付けはできません。</li>
+            <li>この調査では、入力欄への貼り付けの操作と、調査中に画面を離れた回数・時間を記録します。</li>
+          </ul>
+        </div>
+        <div className="proposal" style={{background:"#f0fdf4",borderColor:"#bbf7d0"}}>
+          <b>💴 報酬について</b>
+          <p style={{marginTop:6}}>報酬は<b>{CW_REWARD_YEN}円（固定）</b>で、クラウドワークスを通じてお支払いします。</p>
+          <p style={{marginTop:6}}>交渉の成果は<b>ゲームのスコア</b>として表示されます。スコアは<b>換金できず、報酬額にも一切影響しません</b>。
+            <b>🏆 ゲームとして、高得点を目指しましょう！</b></p>
+          <ul style={{marginTop:6}}>
+            <li><b>合意した過失割合が、あなたにとって有利（自分の割合が低い）ほど</b>、スコアが上がります。</li>
+            <li><b>より少ないやり取りで早く合意に至るほど</b>、スコアが上がります。</li>
+            <li><b>⚠️ ペナルティ：</b>あなたの説明が<b>客観的な事実（証拠）と食い違い、それが露見した場合</b>は、
+              1件につきスコアが差し引かれます。</li>
+          </ul>
+          <p style={{marginTop:6,fontWeight:700,color:"#b45309"}}>3つのシナリオと必須アンケートを完了し、
+            最後の画面に表示される<b>完了コードをクラウドワークスのタスク画面で提出</b>した方に報酬をお支払いします。</p>
+          <p className="mut" style={{marginTop:6}}>未回答、重複参加、明らかに機械的な回答、注意確認への不通過、
+            記録不全等を確認します。回答内容の正誤や研究仮説との一致、スコアによって支払可否を判断することはありません。</p>
+        </div>
+      </>}
+      {effStudy === "study3" && !IS_CW &&
+        <div className="proposal" style={{background:"#f0fdf4",borderColor:"#bbf7d0"}}>
+          <b>💴 成功報酬について（開始前に必ずお読みください）</b>
+          <p style={{marginTop:6}}>本調査では、参加のお礼として<b>基本報酬 100円</b>をお支払いします。さらに、あなたの
+            <b>交渉の成果に応じて成功報酬が上乗せ</b>され、<b>合計で最大 500円</b>となります。</p>
+          <ul style={{marginTop:6}}>
+            <li><b>合意した過失割合が、あなたにとって有利（自分の割合が低い）ほど</b>、報酬が上がります。</li>
+            <li><b>より少ないやり取りで早く合意に至るほど</b>、報酬が上がります（長引くと上乗せは減ります）。</li>
+            <li><b>⚠️ ペナルティ：</b>あなたの説明が<b>客観的な事実（証拠）と食い違い、それが露見した場合</b>は、
+              1件につき成功報酬が差し引かれます。<b>虚偽が明らかになると報酬は下がります。</b>
+              差し引きによって基本報酬100円を下回ることはありません。</li>
+          </ul>
+          <p className="mut" style={{marginTop:6}}>つまり、<b>自分に有利な割合で、早く</b>合意することを目指してください。</p>
+          <p style={{marginTop:6,fontWeight:700,color:"#b45309"}}>3つのシナリオと必須アンケートを完了し、
+            完了後の記録確認で支払い基準を満たした方全員に報酬をお支払いします。</p>
+          <p className="mut" style={{marginTop:6}}>未回答、重複参加、明らかに機械的な回答、注意確認への不通過、
+            記録不全等を確認します。回答内容の正誤や研究仮説との一致によって支払可否を判断することはありません。</p>
+        </div>}
+
+      <h3>進め方のポイント</h3>
+      <ul>
+        <li>{effStudy === "study3"
+          ? <>参加は任意で、途中でもいつでも中止できます。ただし、途中保存・再開はできず、
+              <b>最後の「完了」画面まで到達しなかった場合は報酬をお支払いできません。</b></>
+          : <>各画面の案内に従い、<b>最後の「完了」画面まで</b>進めてください。</>}</li>
+        <li>{effStudy === "study3"
+          ? <>事故映像は<b>{REQUIRED_VIEWS}回</b>再生します。車内の表示（速度計・信号）も含めて確認してから次へ進んでください。</>
+          : <>事故映像は<b>1回のみ</b>再生できます。落ち着いて確認してから次へ進んでください。</>}</li>
+        <li>正解・不正解はありません。あなた自身の判断でお答えください。</li>
+      </ul>
+
+      {effStudy === "study3" && <>
+        <h3>参加の条件</h3>
+        <ul>
+          <li>18歳以上で、日本語を理解できる方。</li>
+          {IS_CW && <li><b>自動車の運転免許（普通免許など。AT限定可）をお持ちの方。</b></li>}
+          <li>交通事故の経験などにより、事故の映像や示談の場面で不快に感じるおそれのある方は、参加をお控えください。
+            事故映像は物理シミュレータで作成した架空のもので、実在の事故・人物、負傷者や流血等の描写は含まれません。</li>
+        </ul>
+
+        <h3>AIの利用と、終了後にお伝えすること</h3>
+        <ul>
+          <li>交渉の相手方、相手方の代理人、調停役、およびあなたの代理人の発言は、<b>AI（大規模言語モデル）</b>が生成します。
+            あなたが入力した文章は、これらの応答の生成と研究上の分類のためにAIで処理します。</li>
+          <li>研究の性質上、割り当てられた条件の名称、事実が記録に残る確率、相手方の記録の有無などの一部の設定は、
+            調査中にはお知らせせず、終了後の完了画面で説明します。</li>
+        </ul>
+
+        <h3>予想される負担</h3>
+        <p>短い動画の視聴、文章の入力、選択操作、アンケート回答が中心で、身体的な負担は軽微です。
+          架空の事故について、自分に不利な事実を述べるか、伏せるか、証拠を出すかを判断するため、軽い緊張や疲労を感じることがあります。
+          また、証拠と食い違う説明が確認された旨の表示に不快感を覚える可能性があります。
+          不快感や疲労を感じた場合は、いつでも中断してください。本調査は虚偽を推奨するものではなく、
+          研究上の模擬ゲームであることを完了画面で改めて説明します。</p>
+
+        <h3>データの取扱い</h3>
+        <ul>
+          <li>取得するデータ：アンケートの回答、代理人AIに伝えた文章と私的メモ、ドライブレコーダー提出の選択、交渉の記録、
+            合意または裁定の結果、操作の時刻、年齢・性別・事故経験・生成AI利用経験、
+            {IS_CW ? "入力欄への貼り付けの操作回数、調査中に画面を離れた回数と時間、完了コード。"
+                   : "プラットフォームの登録者ID、完了コード。"}</li>
+          {IS_CW
+            ? <li>研究回答データは無作為に生成したIDで管理し、氏名、住所、電話番号、振込先情報は含めません。
+                クラウドワークスのユーザー名等はこの画面では取得せず、完了コードの照合にのみクラウドワークス上の提出内容を用います。</li>
+            : <li>研究回答データは無作為に生成したIDで管理し、氏名、住所、電話番号、振込先情報は含めません。
+                登録者IDは、重複参加の防止、完了確認および報酬支払いのためにのみ用います。</li>}
+          <li>研究回答データを閲覧できるのは研究責任者と実施者に限ります。データは Amazon Web Services（AWS）上のデータベースに保存し、
+            入力された文章は日本国内のAI推論環境で処理します。</li>
+          {!IS_CW && <li>振込先情報（金融機関名、支店名、口座種別、口座番号、口座名義）は、完了画面の専用フォームで取得し、暗号化通信で送信して、
+            研究回答とは別のデータベースに保存します。報酬の支払いと重複参加の確認にのみ使用し、支払い等の完了後、不要となり次第削除します
+            （取得から90日後には自動的に削除します）。</li>}
+          <li>研究回答データは調査終了後1年間保存したのち削除します。結果は学会発表および学術論文として公表しますが、
+            集計した形または個人を識別できない形に限ります。</li>
+        </ul>
+      </>}
+
+      <h3>同意事項</h3>
+      <ul>
+        <li>これは<b>模擬シナリオ</b>であり、実在の事故・紛争ではありません。</li>
+        <li>交渉の相手方や一部の情報提供は<b>AI（人工知能）</b>が生成します（実験終了後に改めて説明します）。</li>
+        <li>回答は研究目的にのみ利用し、個人が特定される形では公表しません。</li>
+        <li>いつでも中断できます。最終的な判断は常にあなた自身が行います。
+          {effStudy === "study3" && <> 中断するときは、このウィンドウを閉じるだけで構いません。
+            {IS_CW
+              ? <>未完了の場合は報酬対象となりませんが、参加・不参加や途中中止によってそれ以外の不利益を受けることはありません。</>
+              : <>未完了の場合は報酬対象となりませんが、参加・不参加や途中中止が、
+                配達業務の受注、評価、契約等に影響することはありません。</>}</>}</li>
+      </ul>
+      {effStudy === "study3" && <>
+        <h3>実施者・問い合わせ先</h3>
+        <p>慶應義塾大学大学院システムデザイン・マネジメント研究科<br/>
+          {IS_CW
+            ? <>研究責任者：矢向 高弘（教授）<br/>
+                実施者：緒方 甫哉（後期博士課程）<br/>
+                お問い合わせは、クラウドワークスのメッセージからお送りください。</>
+            : <>研究責任者：矢向 高弘（教授）　yakoh@keio.jp<br/>
+                実施者：緒方 甫哉（後期博士課程）　motoki.ogata@keio.jp</>}</p>
+        <p className="mut">「同意して始める」を押すと、上記の説明を理解し、この調査に参加することに同意したものとみなします。
+          同意しない場合は、このウィンドウを閉じてください。</p>
+      </>}
+      {entry.devKey &&
+        <div className="devpanel">
+          <div className="devpanel-hd">🛠 実験者用コントロール（このセッションは分析から除外されます）</div>
+          <div className="devpanel-row">
+            <label>研究
+              <select value={devStudy} onChange={e=>{ setDevStudy(e.target.value); setDevCell(0); }}>
+                {Object.keys(STUDY_LABELS).map(k=><option key={k} value={k}>{STUDY_LABELS[k]}</option>)}
+              </select>
+            </label>
+            <label>セル
+              <select value={devCell} onChange={e=>setDevCell(Number(e.target.value))}>
+                {CELL_LABELS[devStudy].map((lb,i)=><option key={i} value={i}>{i}: {lb}</option>)}
+              </select>
+            </label>
+            <label>シナリオ
+              <select value={devScenario} onChange={e=>setDevScenario(e.target.value)}>
+                {Object.keys(SCENARIO_LABELS).map(k=><option key={k} value={k}>{SCENARIO_LABELS[k]}</option>)}
+              </select>
+            </label>
+            {devStudy === "study3" &&
+              <label>過失セル
+                <select value={devFaultCell} onChange={e=>setDevFaultCell(e.target.value)}>
+                  {Object.keys(FAULT_CELL_LABELS).map(k=><option key={k} value={k}>{FAULT_CELL_LABELS[k]}</option>)}
+                </select>
+              </label>}
+          </div>
+          <div className="mut">現在の指定: {devStudy} / cell={devCell}（{CELL_LABELS[devStudy][devCell]}）/ {devScenario}
+            {devStudy === "study3" && <> / 過失={FAULT_CELL_LABELS[devFaultCell]}（単一試行・3試行ループはしません）</>}</div>
+        </div>}
+      {err && <div className="err">{err}</div>}
+      {IS_CW && !entry.devKey &&
+        <label className="toggle" style={{marginTop:14}}>
+          <input type="checkbox" checked={hasLicense} onChange={e=>setHasLicense(e.target.checked)} />
+          <span><b>自動車の運転免許を持っています</b>（参加の条件です）</span>
+        </label>}
+      <div style={{marginTop:18}}>
+        <button className="btn" disabled={IS_CW && !entry.devKey && !hasLicense} onClick={()=>start()}>
+          {entry.devKey ? "この設定で開始（挙動確認）" : "同意して始める"}
+        </button>
+      </div>
+    </div>;
+  }
+  else if (step === "video") {
+    // 研究3は映像直後に必ず認識チェック(perception)を挟む＝毎試行。
+    // 事前アンケート(t0: AI態度・属性)は最初の1回だけ。研究1/2は従来どおり動画→t0。
+    view = <VideoGate key={session.sessionId} session={session}
+             onDone={async ()=>{
+               if (study === "study3") { await loadForm("perception"); setStep("perception"); }
+               else setStep("t0");
+             }} />;
+  }
+  else if (step === "t0" || step === "t1" || step === "t2"
+           || step === "perception" || step === "post_trial") {
+    // key で段階ごとに必ず作り直す。これが無いと perception→t0 のように SurveyForm が
+    // 連続して同じ位置に来たとき React が同じインスタンスを再利用し、送信中フラグ(busy)と
+    // 前段階の回答(ans)が残る＝T0のボタンが「送信中…」のまま無効になり先へ進めない。
+    view = form ? <SurveyForm key={form.stage + "-" + trialIndex} form={form} onSubmit={submitSurvey} />
+                : <div className="card">読み込み中…</div>;
+  }
+  else if (step === "scene") {
+    const sc = session.scenario;
+    view = <div className="card">
+      {study === "study3" && session.trial && session.trial.total > 1 &&
+        <div className="mut" style={{marginBottom:6}}>シナリオ {session.trial.index + 1} / {session.trial.total}</div>}
+      <h2>事故の概要</h2>
+      {study === "study3" &&
+        <p className="mut" style={{marginTop:-6, marginBottom:8}}>
+          以下は、<b>双方の間で争いのない事故の状況</b>です。</p>}
+      <div className="scenario">{sc.summary}</div>
+      <div className="private">{sc.victim_private_info}</div>
+      {study === "study1" && session.proposal &&
+        <div className="proposal">
+          <div className="headline">{session.proposal.headline}</div>
+          <div className="mut">起草: {session.drafter_label}</div>
+          {session.proposal.body && <div style={{marginTop:10}}>{session.proposal.body}</div>}
+        </div>}
+      {study === "study3" && session.game_brief &&
+        <div className="proposal" style={{background:"#fff7ed",borderColor:"#fed7aa"}}>
+          <b>あなたの立場（近未来の示談プラットフォーム）</b>
+          {/* 2026-11 読みやすさのため箇条書きに整理（情報は従来と同じ）。
+              📡 の surveillance_context は操作（High/Low）の文言なので、文面も位置も変えないこと。
+              🏛 は 2026-09 専門家FB：第三者記録は制度として保全され、当事者が開示を請求して提出するもの。 */}
+          <ul className="brief">
+            <li><b>🤖 しくみ</b>：あなたと相手方にそれぞれ<b>代理人AI</b>がつき、<b>中立の調停AI</b>が進行します。</li>
+            <li><b>🗣 あなたの役割</b>：過失割合に影響すると思う点を、<b>自分の言葉で代理人に伝えます</b>。
+              何を言い、何に触れないかはあなたの判断です。相手方“本人”の入力は見えませんが、<b>相手方代理人の主張は見えます</b>。</li>
+            <li><b>🏆 {IS_CW ? "スコア" : "成果報酬"}</b>：<b>自分に有利な過失割合（自分の割合が小さい）</b>で、
+              <b>早く合意する</b>ほど上がります。客観的な証拠と食い違う説明が見つかると<b>減点</b>されます。
+              {IS_CW && <b>高得点を目指そう！</b>}（このルールは画面上部にいつも表示されます）</li>
+            <li><b>🎥 ドライブレコーダー</b>：あなたは事故時の映像を持っています。証拠として出すかは<b>任意</b>です。
+              出すと映像に写った双方の行動が事実として確定するため、<b>有利にも不利にも働きえます</b>。</li>
+            <li><b>📡 別ルートの記録</b>：あなたが何を言っても言わなくても、<b>事実が別のルートで明らかになる</b>ことがあります
+              （<b>相手方のドライブレコーダー</b>や第三者の客観記録）。
+              {session.surveillance_context && <> {session.surveillance_context}</>}</li>
+            <li><b>🏛 第三者の記録</b>：交差点や車の記録装置のデータは、<b>第三者機関が一定期間保全</b>します。
+              代理人は<b>開示を請求して提出できます</b>（手続と時間がかかります）。調停AIは自分で証拠を集めず、
+              <b>提出された証拠を照合して事実を確定する</b>だけです。</li>
+            <li><b>⚖️ 期限</b>：交渉は<b>最大 {(session.game_brief && session.game_brief.max_rounds) || 7} ラウンド</b>。
+              合意できなければ<b>裁定</b>に移り、それまでの証拠・第三者の記録・相手方が出した記録で割合が決まります
+              （相手方が記録を出すとは<b>限りません</b>）。</li>
+          </ul>
+        </div>}
+      <div style={{marginTop:18}}>
+        {study === "study1"
+          ? <button className="btn" onClick={async()=>{ await loadForm("t1"); setStep("t1"); }}>和解案を評価する</button>
+          : <button className="btn" onClick={()=>setStep("negotiate")}>交渉を始める</button>}
+      </div>
+    </div>;
+  }
+  else if (step === "negotiate") {
+    view = study === "study3"
+      ? <PlatformNegotiation key={session.sessionId} session={session} onDone={finalizeNego} />
+      : <Negotiation session={session} onDone={finalizeNego} />;
+  }
+  else if (step === "stageClear") {
+    const total = (session.trial && session.trial.total) || 3;
+    const last = trialIndex >= total - 1;
+    view = <div className="card center clear">
+      <Confetti />
+      <div className="clear-burst">{last ? "🏆" : "🏁"}</div>
+      <div className="clear-k">{last ? "ALL STAGES CLEAR" : `STAGE ${trialIndex+1} CLEAR`}</div>
+      <h2 style={{marginTop:6}}>シナリオ {trialIndex+1} が終わりました</h2>
+      <p>{last ? <>3つのシナリオがすべて終わりました。<br/>あとは<b>最後のアンケート</b>に答えると完了です。</>
+               : <>残りは <b>あと {total-trialIndex-1} シナリオ</b> です。<br/>次は別の事故です。
+                  {IS_CW && <><br/><b>🏆 次のシナリオでも高得点を目指そう！</b></>}</>}</p>
+      <p className="mut">ひと息ついてから進んでください。</p>
+      <div style={{marginTop:16}}>
+        <button className="btn" disabled={busyNext} onClick={async()=>{
+          setBusyNext(true); setErr("");
+          try {
+            if (last) { await loadForm("t2"); setStep("t2"); }
+            else await startNextTrial(trialIndex + 1);
+          } catch(e) { setErr("次へ進めませんでした: "+e.message); }
+          setBusyNext(false);
+        }}>{busyNext ? "準備中…" : last ? "最後のアンケートへ" : `STAGE ${trialIndex+2} へ進む ▶`}</button>
+      </div>
+    </div>;
+  }
+  else if (step === "finalizing") {
+    view = <div className="card center"><h2>交渉結果を記録しています…</h2></div>;
+  }
+  else if (step === "done") {
+    // 研究3の複数試行は合算で提示。単一試行（研究1/2・dev）は従来どおり直近の結果を提示。
+    const multi = study === "study3" && outcomes.length > 1;
+    const totalNet = outcomes.reduce((a,o)=> a + ((o.game && o.game.payoff && o.game.payoff.net) || 0), 0);
+    const totalExposed = outcomes.reduce((a,o)=> a + ((o.game && o.game.victim_exposed) || 0), 0);
+    const UNIT = IS_CW ? "点" : "円";
+    view = <div className="card center">
+      {multi && <><div className="clear-burst" style={{marginTop:8}}>🏆</div>
+        <div className="clear-k" style={{marginBottom:6}}>COMPLETE</div></>}
+      <h1>ご協力ありがとうございました</h1>
+      {!multi && outcome && <p>交渉結果: {outcome.agreed ? <b>合意成立</b>
+          : (outcome.game && outcome.game.resolution === "adjudication" ? <b>裁定で決着</b> : "合意に至らず")}
+        {outcome.ratio!=null && <> （過失割合 あなた {outcome.ratio}）</>}（{outcome.rounds} ラウンド）</p>}
+      {!multi && outcome && outcome.game && outcome.game.resolution === "adjudication" && outcome.game.adjudication &&
+        <p className="mut">※ 合意に至らなかったため、その時点までに確認された証拠・記録に基づき
+          プラットフォームが過失割合を決定しました
+          {outcome.game.adjudication.opp_submitted && <>（裁定では相手方から映像記録が提出されました）</>}。</p>}
+      {!multi && outcome && outcome.game && outcome.game.payoff &&
+        <div className="proposal" style={{textAlign:"left",background:"#f0fdf4"}}>
+          <b>{IS_CW ? "🏆 あなたのスコア" : "あなたの成果報酬"}</b>
+          <div>過失割合ボーナス: {outcome.game.payoff.ratio_bonus} {UNIT}</div>
+          <div>早期決着ボーナス: {outcome.game.payoff.speed_bonus} {UNIT}</div>
+          {outcome.game.payoff.penalty>0 &&
+            <div>事実と異なる説明の指摘: − {outcome.game.payoff.penalty} {UNIT}</div>}
+          <div style={{fontWeight:700,marginTop:4}}>合計: {outcome.game.payoff.net} {UNIT}</div>
+          {outcome.game.victim_exposed>0 &&
+            <p className="mut" style={{marginTop:6}}>※ 交渉・裁定を通じて、客観証拠と食い違う説明が {outcome.game.victim_exposed} 件、確認されました。</p>}
+        </div>}
+      {multi &&
+        <div className="proposal" style={{textAlign:"left",background:"#f0fdf4"}}>
+          <b>{IS_CW ? "🏆 あなたのスコア" : "あなたの成果報酬"}（全 {outcomes.length} シナリオ合計）</b>
+          {outcomes.map((o,i)=>
+            <div key={i}>シナリオ {i+1}: {o.agreed ? "合意"
+                : (o.game && o.game.resolution === "adjudication" ? "裁定" : "不成立")}
+              {o.ratio!=null && <>・過失 あなた {o.ratio}</>}
+              {o.game && o.game.payoff && <>・成果 {o.game.payoff.net} 点</>}</div>)}
+          {IS_CW ? <>
+            <div style={{fontWeight:700,marginTop:8}}>合計: {totalNet} 点</div>
+            <p className="mut" style={{marginTop:6}}>※ スコアは換金できず、報酬額には影響しません。報酬は {CW_REWARD_YEN}円（固定）です。</p>
+          </> : <>
+            <div style={{marginTop:8}}>基本報酬: 100 円</div>
+            <div>成果ボーナス: {Math.max(0, totalNet)} 円</div>
+            <div style={{fontWeight:700,marginTop:4}}>支払予定額: {Math.min(500, Math.max(100, 100 + totalNet))} 円</div>
+            <p className="mut" style={{marginTop:6}}>※ 基本報酬100円に成果ボーナスを加算した金額で、上限は500円です。
+              完了記録の確認後に支払額が確定します。</p>
+          </>}
+          {totalExposed>0 &&
+            <p className="mut" style={{marginTop:6}}>※ 全体で、客観証拠と食い違う説明が {totalExposed} 件確認され、{IS_CW ? "スコア" : "成果ボーナス"}から差し引かれています。</p>}
+        </div>}
+      <h3>デブリーフィング（種明かし）</h3>
+      <p style={{textAlign:"left"}}>ご協力ありがとうございました。ここで本研究の目的をご説明します。</p>
+      <ul style={{textAlign:"left"}}>
+        <li>交渉の相手方・その代理人・調停役の応答は、すべて<b>AI（大規模言語モデル）</b>が生成したものです。実在の人物・実際の事故ではありません。</li>
+        <li>本研究は<b>近未来の「示談交渉プラットフォーム」</b>——各当事者の代理AIが主張し、中立の調停AIが仲介する状況——で、
+          <b>人が証拠（ドライブレコーダー）を開示するか否か、どこまで正直に主張するか</b>を調べるものです。</li>
+        <li>シミュレーション内には<b>実際に起きた事実（地上真実）</b>が設定されており、あなたの主張や合意結果がそれとどれだけ一致/乖離したかを分析します。
+          「客観証拠と食い違う説明」の指摘は、この地上真実との照合によるものです（あなたを評価・非難する目的ではありません）。</li>
+        <li>ドライブレコーダーの提出は、有利な事実の裏づけになる一方、不利な事実の確定にもつながる——という開示の意思決定を観察するための設計です。</li>
+        <li>相手方のドライブレコーダーの<b>有無や裁定での提出</b>は、現実の普及状況・提出行動を模した<b>確率的な設定</b>に基づくものです（あなたの行動によって操作されたものではありません）。</li>
+        <li>回答は研究目的にのみ用い、個人が特定される形で公表することはありません。</li>
+      </ul>
+      <p style={{marginTop:16}}>完了コード:</p>
+      <div className="code">{completionCode}</div>
+      {IS_CW && <p style={{marginTop:8,fontWeight:700,color:"#b45309"}}>
+        このコードを、クラウドワークスのタスク画面の回答欄に入力して提出してください。</p>}
+      {study === "study3" && participantId && session && !IS_CW &&
+        <PaymentForm sessionId={session.sessionId} participantId={participantId}
+          completionCode={completionCode} expectedAmount={Math.min(500, Math.max(100, 100 + totalNet))}
+          registrantId={crowd.registrantId} />}
+      {crowd.returnUrl &&
+        <p style={{marginTop:16}}><a className="btn" href={crowd.returnUrl+(crowd.returnUrl.includes("?")?"&":"?")+"cc="+completionCode}>謝礼手続きに戻る</a></p>}
+      <p className="mut" style={{marginTop:16}}>{IS_CW
+        ? "クラウドワークスで完了コードを提出したら、ウィンドウを閉じて構いません。"
+        : study === "study3" && participantId
+        ? "振込先の登録完了を確認したら、ウィンドウを閉じて構いません。"
+        : "この画面のコードを控えたら、ウィンドウを閉じて構いません。"}</p>
+    </div>;
+  }
+
+  return <div className="wrap">
+    {entry.devKey && step !== "landing" &&
+      <button className="btn ghost" onClick={resetToDev}
+        style={{position:"fixed", top:8, right:8, zIndex:50, fontSize:12, padding:"5px 10px"}}>
+        🛠 設定を変えてやり直す</button>}
+    {study === "study3" && participantId && step !== "landing" &&
+      <StageHud index={trialIndex} total={(session && session.trial && session.trial.total) || 3} step={step} />}
+    <div className="progress"><i style={{width: progress+"%"}}></i></div>
+    {err && step !== "landing" && <div className="card err">{err}</div>}
+    {view}
+    <p className="mut center" style={{marginTop:24}}>交通事故示談交渉支援AI 実証実験プラットフォーム（研究用）</p>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
